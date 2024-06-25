@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>נגד הקמת שדה תעופה בעמק יזרעאל</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            direction: rtl; /* יישור לימין */
+        }
+        canvas {
+            background-color: #ffffff;
+            border: 2px solid #000000;
+        }
+        #startButton {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <button id="startButton">התחל משחק עם מוזיקה</button>
+    <audio id="backgroundMusic" loop>
+        <source src="audio.mp3" type="audio/mpeg">
+        הדפדפן שלך לא תומך באלמנט של קול.
+    </audio>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+
+        const player = {
+            width: 87.5, // 50 * 1.75
+            height: 87.5,
+            x: 50,
+            y: canvas.height / 2 - 25,
+            dy: 0,
+            speed: 7,
+            image: new Image()
+        };
+        player.image.src = 'airplane.svg'; // שים כאן את שם קובץ ה-SVG של המטוס
+
+        let birds = [];
+        const birdWidth = 87.5; // 50 * 1.75
+        const birdHeight = 87.5;
+        const birdSpeedX = 6;
+        const birdImage = new Image();
+        birdImage.src = 'bird.svg'; // שים כאן את שם קובץ ה-SVG של הציפור
+
+        function createBird() {
+            const y = Math.random() * (canvas.height - birdHeight);
+            const speedY = (Math.random() - 0.5) * 2; // מהירות על ציר ה-Y בין -1 ל-1
+            birds.push({ x: canvas.width, y, width: birdWidth, height: birdHeight, speedY });
+        }
+
+        function drawPlayer() {
+            if (player.image.complete) {
+                ctx.drawImage(player.image, player.x, player.y, player.width, player.height);
+            }
+        }
+
+        function drawBirds() {
+            birds.forEach(bird => {
+                if (birdImage.complete) {
+                    ctx.drawImage(birdImage, bird.x, bird.y, bird.width, bird.height);
+                }
+            });
+        }
+
+        function updatePlayer() {
+            player.y += player.dy;
+            if (player.y < 0) player.y = 0;
+            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+        }
+
+        function updateBirds() {
+            birds.forEach(bird => {
+                bird.x -= birdSpeedX;
+                bird.y += bird.speedY;
+
+                // מניעת ציפורים מלעזוב את הגבולות על ציר ה-Y
+                if (bird.y < 0 || bird.y + bird.height > canvas.height) {
+                    bird.speedY *= -1;
+                }
+            });
+            birds = birds.filter(bird => bird.x + bird.width > 0);
+        }
+
+        function detectCollision() {
+            for (const bird of birds) {
+                if (player.x < bird.x + bird.width &&
+                    player.x + player.width > bird.x &&
+                    player.y < bird.y + bird.height &&
+                    player.y + player.height > bird.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function drawTextOnScreen(text1, text2) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.font = '36px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text1, canvas.width / 2, canvas.height / 2 - 20);
+            ctx.fillText(text2, canvas.width / 2, canvas.height / 2 + 20);
+        }
+
+        function gameOver() {
+            drawTextOnScreen('החיים זה לא משחק', 'לא לשדה תעופה בעמק יזרעאל');
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            updatePlayer();
+            updateBirds();
+            drawPlayer();
+            drawBirds();
+
+            if (detectCollision()) {
+                gameOver();
+                return;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function keyDownHandler(e) {
+            if (e.key === 'ArrowUp' || e.key === 'מעלה') {
+                player.dy = -player.speed;
+            } else if (e.key === 'ArrowDown' || e.key === 'מטה') {
+                player.dy = player.speed;
+            }
+        }
+
+        function keyUpHandler(e) {
+            if (e.key === 'ArrowUp' || e.key === 'מעלה' || e.key === 'ArrowDown' || e.key === 'מטה') {
+                player.dy = 0;
+            }
+        }
+
+        document.addEventListener('keydown', keyDownHandler);
+        document.addEventListener('keyup', keyUpHandler);
+
+        startButton.addEventListener('click', function() {
+            backgroundMusic.play();
+            this.style.display = 'none'; // הסתרת הכפתור לאחר הקלקה
+            gameLoop(); // התחלת משחק לאחר הקלקה
+            setInterval(createBird, 2000); // יצירת ציפורים בקצב קבוע
+        });
+    </script>
+</body>
+</html>
